@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "HemoAlerta",
+    "slug": "hemoalerta",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#C62828"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hemoalerta.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#C62828"
+      },
+      "package": "com.hemoalerta.app"
+    }
+  }
+}

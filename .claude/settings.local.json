@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/gilva/Downloads/HemoAlerta/**)",
+      "Bash(npm install *)",
+      "Bash(npx expo *)",
+      "Bash(node -e \"const p = require\\('./node_modules/expo/package.json'\\); console.log\\('Expo:', p.version\\)\")",
+      "Bash(node -e \"const p = require\\('./node_modules/react-native/package.json'\\); console.log\\('React Native:', p.version\\)\")",
+      "Bash(node -e \"const p = require\\('./node_modules/react/package.json'\\); console.log\\('React:', p.version\\)\")",
+      "Bash(node -e \"console.log\\('expo:', require\\('./node_modules/expo/package.json'\\).version, '| RN:', require\\('./node_modules/react-native/package.json'\\).version, '| React:', require\\('./node_modules/react/package.json'\\).version\\)\")",
+      "Bash(gh auth *)",
+      "PowerShell(gh auth status 2>&1)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
