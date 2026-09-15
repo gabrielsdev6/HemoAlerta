@@ -37,12 +37,12 @@ export function AuthProvider({ children }) {
   const register = async (email, password, profileData) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const profile = {
-      ...profileData,
       uid: cred.user.uid,
       email,
       isAvailable: true,
       totalDonations: 0,
       createdAt: new Date().toISOString(),
+      ...profileData, // profileData pode sobrescrever os defaults acima
     };
     await setDoc(doc(db, 'users', cred.user.uid), profile);
     setUserProfile(profile);

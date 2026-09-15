@@ -15,14 +15,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
+import { notifyCompatibleDonors } from '../services/notificationService';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 const URGENCY_OPTIONS = [
-  { key: 'normal',        label: 'Normal',        color: '#2E7D32', bg: '#E8F5E9' },
-  { key: 'urgente',       label: 'Urgente',        color: '#E65100', bg: '#FFF3E0' },
-  { key: 'muito_urgente', label: 'Muito Urgente',  color: '#C62828', bg: '#FFEBEE' },
-  { key: 'critico',       label: '⚠ Crítico',      color: '#4A148C', bg: '#F3E5F5' },
+  { key: 'normal',        label: 'Normal',       color: '#2E7D32', bg: '#E8F5E9' },
+  { key: 'urgente',       label: 'Urgente',       color: '#E65100', bg: '#FFF3E0' },
+  { key: 'muito_urgente', label: 'Muito Urgente', color: '#C62828', bg: '#FFEBEE' },
+  { key: 'critico',       label: '⚠ Crítico',     color: '#4A148C', bg: '#F3E5F5' },
 ];
 
 export default function CreateRequestScreen({ navigation }) {
@@ -31,7 +32,6 @@ export default function CreateRequestScreen({ navigation }) {
     bloodType: '',
     urgency: 'urgente',
     hospital: '',
-    city: userProfile?.city || '',
     patientName: '',
     notes: '',
   });
@@ -39,9 +39,18 @@ export default function CreateRequestScreen({ navigation }) {
 
   const set = (field) => (value) => setForm((p) => ({ ...p, [field]: value }));
 
+  // Region is inherited from the user profile — not editable per request
+  const municipio = userProfile?.municipio || '';
+  const estado = userProfile?.estado || '';
+  const codMunicipio = userProfile?.codMunicipio || null;
+
   const handleSubmit = async () => {
-    if (!form.bloodType || !form.hospital.trim() || !form.city.trim()) {
-      Alert.alert('Atenção', 'Preencha o tipo sanguíneo, hospital e cidade.');
+    if (!form.bloodType || !form.hospital.trim()) {
+      Alert.alert('Atenção', 'Preencha o tipo sanguíneo e o hospital.');
+      return;
+    }
+    if (!municipio) {
+      Alert.alert('Região não configurada', 'Configure sua região em Perfil antes de criar um pedido.');
       return;
     }
     setLoading(true);
@@ -50,7 +59,9 @@ export default function CreateRequestScreen({ navigation }) {
         bloodType: form.bloodType,
         urgency: form.urgency,
         hospital: form.hospital.trim(),
-        city: form.city.trim(),
+        municipio,
+        estado,
+        codMunicipio,
         patientName: form.patientName.trim(),
         notes: form.notes.trim(),
         requesterUid: user.uid,
@@ -59,10 +70,19 @@ export default function CreateRequestScreen({ navigation }) {
         status: 'open',
         createdAt: new Date().toISOString(),
       });
+
+      // Fire-and-forget: notify compatible donors in the same municipality
+      notifyCompatibleDonors({
+        bloodType: form.bloodType,
+        municipio,
+        hospital: form.hospital.trim(),
+        urgency: form.urgency,
+      });
+
       Alert.alert(
         '✅ Pedido publicado!',
-        'Doadores compatíveis já podem ver seu pedido.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        'Doadores compatíveis em ' + municipio + ' serão notificados.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }],
       );
     } catch {
       Alert.alert('Erro', 'Não foi possível criar o pedido. Tente novamente.');
@@ -84,6 +104,15 @@ export default function CreateRequestScreen({ navigation }) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+
+          {/* Região herdada (read-only) */}
+          <Text style={styles.sectionLabel}>REGIÃO DO PEDIDO</Text>
+          <View style={styles.regionBox}>
+            <Text style={styles.regionIcon}>📍</Text>
+            <Text style={styles.regionText}>
+              {municipio ? `${municipio} - ${estado}` : 'Região não configurada'}
+            </Text>
+          </View>
 
           {/* Tipo sanguíneo */}
           <Text style={styles.sectionLabel}>TIPO NECESSÁRIO *</Text>
@@ -141,17 +170,6 @@ export default function CreateRequestScreen({ navigation }) {
             autoCapitalize="words"
           />
 
-          {/* Cidade */}
-          <Text style={styles.sectionLabel}>CIDADE *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: São Paulo - SP"
-            placeholderTextColor="#C0C0C0"
-            value={form.city}
-            onChangeText={set('city')}
-            autoCapitalize="words"
-          />
-
           {/* Paciente */}
           <Text style={styles.sectionLabel}>NOME DO PACIENTE (opcional)</Text>
           <TextInput
@@ -189,7 +207,7 @@ export default function CreateRequestScreen({ navigation }) {
           </TouchableOpacity>
 
           <Text style={styles.disclaimer}>
-            Seu nome e telefone serão visíveis para possíveis doadores.
+            Doadores compatíveis em {municipio || 'sua região'} serão notificados automaticamente.
           </Text>
 
           <View style={{ height: 32 }} />
@@ -219,79 +237,58 @@ const styles = StyleSheet.create({
   scroll: { padding: 20 },
 
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#BDBDBD',
-    letterSpacing: 1,
-    marginTop: 22,
-    marginBottom: 10,
+    fontSize: 11, fontWeight: '800', color: '#BDBDBD',
+    letterSpacing: 1, marginTop: 22, marginBottom: 10,
   },
+
+  regionBox: {
+    backgroundColor: '#F0F8FF',
+    borderWidth: 1.5,
+    borderColor: '#BBDEFB',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  regionIcon: { fontSize: 18 },
+  regionText: { fontSize: 15, color: '#1565C0', fontWeight: '700', flex: 1 },
 
   bloodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   bloodChip: {
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    backgroundColor: '#FFFFFF',
+    borderWidth: 2, borderColor: '#E0E0E0', borderRadius: 12,
+    paddingVertical: 12, paddingHorizontal: 18, backgroundColor: '#FFFFFF',
   },
   bloodChipOn: {
-    backgroundColor: '#B71C1C',
-    borderColor: '#B71C1C',
-    shadowColor: '#B71C1C',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 3,
+    backgroundColor: '#B71C1C', borderColor: '#B71C1C',
+    shadowColor: '#B71C1C', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 5, elevation: 3,
   },
   bloodChipText: { color: '#9E9E9E', fontWeight: '800', fontSize: 16 },
   bloodChipTextOn: { color: '#FFFFFF' },
 
   urgencyGrid: { gap: 8 },
   urgencyChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 2,
-    borderRadius: 14,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 2, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16, backgroundColor: '#FFFFFF',
   },
   urgencyDot: { width: 10, height: 10, borderRadius: 5 },
   urgencyText: { fontWeight: '700', fontSize: 15 },
 
   input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#EEEEEE',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: '#1A1A1A',
+    backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#EEEEEE',
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: '#1A1A1A',
   },
   textarea: { minHeight: 90 },
 
   btn: {
-    backgroundColor: '#B71C1C',
-    borderRadius: 16,
-    paddingVertical: 17,
-    alignItems: 'center',
-    marginTop: 28,
-    shadowColor: '#B71C1C',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    backgroundColor: '#B71C1C', borderRadius: 16, paddingVertical: 17,
+    alignItems: 'center', marginTop: 28,
+    shadowColor: '#B71C1C', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 5,
   },
   btnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
 
-  disclaimer: {
-    textAlign: 'center',
-    color: '#BDBDBD',
-    fontSize: 12,
-    marginTop: 12,
-  },
+  disclaimer: { textAlign: 'center', color: '#BDBDBD', fontSize: 12, marginTop: 12, lineHeight: 18 },
 });

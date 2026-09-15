@@ -31,9 +31,10 @@ export default function LoginScreen({ navigation }) {
       await login(email.trim().toLowerCase(), password);
     } catch (error) {
       let msg = 'E-mail ou senha incorretos.';
-      if (error.code === 'auth/user-not-found') msg = 'E-mail não cadastrado.';
       if (error.code === 'auth/invalid-email') msg = 'E-mail inválido.';
-      Alert.alert('Erro', msg);
+      if (error.code === 'auth/user-disabled') msg = 'Esta conta foi desativada.';
+      if (error.code === 'auth/too-many-requests') msg = 'Muitas tentativas. Aguarde alguns minutos.';
+      Alert.alert('Erro ao entrar', msg);
     } finally {
       setLoading(false);
     }

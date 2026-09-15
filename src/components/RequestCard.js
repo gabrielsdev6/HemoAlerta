@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
 
 const URGENCY = {
   normal:        { label: 'Normal',        color: '#2E7D32', strip: '#43A047' },
@@ -33,23 +33,32 @@ export default function RequestCard({ request, userBloodType, onClose }) {
   const canDonate = userBloodType && (DONORS_FOR[request.bloodType] || []).includes(userBloodType);
 
   const handleHelp = () => {
+    const rawPhone = request.requesterPhone?.replace(/\D/g, '');
+    const phoneLabel = request.requesterPhone || 'Não informado';
+
+    const buttons = [{ text: 'Fechar', style: 'cancel' }];
+    if (rawPhone) {
+      buttons.push({
+        text: `📞 Ligar: ${request.requesterPhone}`,
+        onPress: () => Linking.openURL(`tel:${rawPhone}`),
+      });
+    }
+
     Alert.alert(
-      'Quero Ajudar! ❤️',
-      `Solicitante: ${request.requesterName}\n📞 ${request.requesterPhone || 'Não informado'}\n\n🏥 ${request.hospital}\n📍 ${request.city}\n🩸 Tipo necessário: ${request.bloodType}`,
-      [{ text: 'Fechar' }]
+      canDonate ? '❤️ Você pode ajudar!' : 'Informações do pedido',
+      `👤 ${request.requesterName}\n🏥 ${request.hospital}\n📍 ${request.city}\n🩸 Tipo necessário: ${request.bloodType}\n📞 ${phoneLabel}`,
+      buttons,
     );
   };
 
   return (
     <View style={styles.card}>
-      {/* Faixa de urgência colorida no topo */}
       <View style={[styles.strip, { backgroundColor: cfg.strip }]}>
         <Text style={styles.stripLabel}>{cfg.label}</Text>
         <Text style={styles.stripTime}>{timeAgo(request.createdAt)}</Text>
       </View>
 
       <View style={styles.body}>
-        {/* Badge tipo sanguíneo */}
         <View style={styles.bloodWrap}>
           <View style={styles.bloodBadge}>
             <Text style={styles.bloodText}>{request.bloodType}</Text>
@@ -61,11 +70,8 @@ export default function RequestCard({ request, userBloodType, onClose }) {
           )}
         </View>
 
-        {/* Informações */}
         <View style={styles.info}>
-          <Text style={styles.hospital} numberOfLines={2}>
-            {request.hospital}
-          </Text>
+          <Text style={styles.hospital} numberOfLines={2}>{request.hospital}</Text>
           <Text style={styles.city}>📍 {request.city}</Text>
           {request.patientName ? (
             <Text style={styles.detail}>👤 {request.patientName}</Text>
@@ -76,7 +82,6 @@ export default function RequestCard({ request, userBloodType, onClose }) {
         </View>
       </View>
 
-      {/* Rodapé */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.helpBtn, !canDonate && styles.helpBtnGray]}
@@ -117,23 +122,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  stripLabel: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  stripTime: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  body: {
-    flexDirection: 'row',
-    gap: 14,
-    padding: 16,
-    alignItems: 'flex-start',
-  },
+  stripLabel: { color: '#FFFFFF', fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
+  stripTime: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600' },
+  body: { flexDirection: 'row', gap: 14, padding: 16, alignItems: 'flex-start' },
   bloodWrap: { alignItems: 'center', gap: 6 },
   bloodBadge: {
     width: 68,
@@ -148,11 +139,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  bloodText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '900',
-  },
+  bloodText: { color: '#FFFFFF', fontSize: 20, fontWeight: '900' },
   compatChip: {
     backgroundColor: '#E8F5E9',
     borderRadius: 10,
@@ -161,27 +148,11 @@ const styles = StyleSheet.create({
   },
   compatText: { color: '#2E7D32', fontSize: 11, fontWeight: '800' },
   info: { flex: 1 },
-  hospital: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    lineHeight: 21,
-    marginBottom: 4,
-  },
+  hospital: { fontSize: 16, fontWeight: '800', color: '#1A1A1A', lineHeight: 21, marginBottom: 4 },
   city: { fontSize: 13, color: '#757575', marginBottom: 2 },
   detail: { fontSize: 13, color: '#757575', marginBottom: 2 },
-  notes: {
-    fontSize: 12,
-    color: '#BDBDBD',
-    marginTop: 6,
-    fontStyle: 'italic',
-    lineHeight: 17,
-  },
-  footer: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    gap: 8,
-  },
+  notes: { fontSize: 12, color: '#BDBDBD', marginTop: 6, fontStyle: 'italic', lineHeight: 17 },
+  footer: { paddingHorizontal: 16, paddingBottom: 14, gap: 8 },
   helpBtn: {
     backgroundColor: '#B71C1C',
     borderRadius: 12,

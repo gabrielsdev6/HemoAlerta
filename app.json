@@ -9,15 +9,33 @@
       "backgroundColor": "#C62828"
     },
     "assetBundlePatterns": ["**/*"],
+    "plugins": [
+      "expo-notifications"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hemoalerta.app"
+      "bundleIdentifier": "com.hemoalerta.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSExceptionDomains": {
+            "mobile-aceite.tcu.gov.br": {
+              "NSIncludesSubdomains": true,
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
+      }
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#C62828"
       },
-      "package": "com.hemoalerta.app"
+      "package": "com.hemoalerta.app",
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     }
   }
 }

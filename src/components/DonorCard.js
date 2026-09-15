@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
 
 const AVATAR_COLORS = ['#B71C1C', '#1565C0', '#2E7D32', '#6A1B9A', '#E65100', '#00695C'];
 
@@ -10,10 +10,18 @@ function avatarColor(name = '') {
 
 export default function DonorCard({ donor }) {
   const handleContact = () => {
+    const rawPhone = donor.phone?.replace(/\D/g, '');
+    const buttons = [{ text: 'Fechar', style: 'cancel' }];
+    if (rawPhone) {
+      buttons.push({
+        text: `📞 Ligar: ${donor.phone}`,
+        onPress: () => Linking.openURL(`tel:${rawPhone}`),
+      });
+    }
     Alert.alert(
       donor.name,
       `🩸 Tipo: ${donor.bloodType}\n📍 ${donor.city}\n📞 ${donor.phone || 'Não informado'}`,
-      [{ text: 'Fechar' }]
+      buttons,
     );
   };
 
@@ -21,39 +29,35 @@ export default function DonorCard({ donor }) {
 
   return (
     <View style={styles.card}>
-      {/* Avatar */}
       <View style={[styles.avatar, { backgroundColor: color }]}>
         <Text style={styles.avatarText}>
           {donor.name ? donor.name.charAt(0).toUpperCase() : '?'}
         </Text>
-        {/* Badge tipo sanguíneo sobre o avatar */}
         <View style={styles.bloodBadge}>
           <Text style={styles.bloodText}>{donor.bloodType}</Text>
         </View>
       </View>
 
-      {/* Info */}
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>{donor.name}</Text>
         <Text style={styles.city}>📍 {donor.city}</Text>
         <View style={[
           styles.statusChip,
-          { backgroundColor: donor.isAvailable ? '#E8F5E9' : '#F5F5F5' }
+          { backgroundColor: donor.isAvailable ? '#E8F5E9' : '#F5F5F5' },
         ]}>
           <View style={[
             styles.statusDot,
-            { backgroundColor: donor.isAvailable ? '#43A047' : '#BDBDBD' }
+            { backgroundColor: donor.isAvailable ? '#43A047' : '#BDBDBD' },
           ]} />
           <Text style={[
             styles.statusText,
-            { color: donor.isAvailable ? '#2E7D32' : '#9E9E9E' }
+            { color: donor.isAvailable ? '#2E7D32' : '#9E9E9E' },
           ]}>
             {donor.isAvailable ? 'Disponível' : 'Indisponível'}
           </Text>
         </View>
       </View>
 
-      {/* Botão */}
       <TouchableOpacity style={styles.contactBtn} onPress={handleContact} activeOpacity={0.8}>
         <Text style={styles.contactIcon}>📞</Text>
         <Text style={styles.contactLabel}>Contato</Text>
@@ -86,11 +90,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     position: 'relative',
   },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
+  avatarText: { fontSize: 22, fontWeight: '900', color: '#FFFFFF' },
   bloodBadge: {
     position: 'absolute',
     bottom: -4,
@@ -104,12 +104,7 @@ const styles = StyleSheet.create({
   },
   bloodText: { color: '#FFF', fontSize: 9, fontWeight: '900' },
   info: { flex: 1 },
-  name: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    marginBottom: 2,
-  },
+  name: { fontSize: 15, fontWeight: '800', color: '#1A1A1A', marginBottom: 2 },
   city: { fontSize: 12, color: '#9E9E9E', marginBottom: 6 },
   statusChip: {
     flexDirection: 'row',

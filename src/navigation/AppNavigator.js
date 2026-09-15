@@ -5,72 +5,41 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { useAuth } from '../context/AuthContext';
-import WelcomeScreen from '../screens/WelcomeScreen';
-import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen';
-import HomeScreen from '../screens/HomeScreen';
-import DonorsScreen from '../screens/DonorsScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import { navigationRef } from './navigationRef';
+
+import WelcomeScreen       from '../screens/WelcomeScreen';
+import LoginScreen         from '../screens/LoginScreen';
+import RegisterScreen      from '../screens/RegisterScreen';
+import HomeScreen          from '../screens/HomeScreen';
+import DonorHomeScreen     from '../screens/DonorHomeScreen';
+import DonorsScreen        from '../screens/DonorsScreen';
+import ProfileScreen       from '../screens/ProfileScreen';
 import CreateRequestScreen from '../screens/CreateRequestScreen';
-import BloodBanksScreen from '../screens/BloodBanksScreen';
+import BloodBanksScreen    from '../screens/BloodBanksScreen';
+import MapScreen           from '../screens/MapScreen';
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
+const Tab   = createBottomTabNavigator();
 
-function TabIcon({ emoji, focused }) {
-  return (
-    <View style={{ alignItems: 'center' }}>
-      <View
-        style={{
-          backgroundColor: focused ? '#FFCDD2' : 'transparent',
-          borderRadius: 12,
-          paddingHorizontal: 8,
-          paddingVertical: 2,
-        }}
-      >
-        <View>{/* emoji text rendered by tabBarLabel */}</View>
-      </View>
-    </View>
-  );
+function HomeTab(props) {
+  const { userProfile } = useAuth();
+  if (userProfile?.userType === 'doador') return <DonorHomeScreen {...props} />;
+  return <HomeScreen {...props} />;
 }
 
+// Tab bar oculta — navegação acontece via drawer customizado
 function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#C62828',
-        tabBarInactiveTintColor: '#9E9E9E',
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#FFCDD2',
-          height: 60,
-          paddingBottom: 8,
-        },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+        tabBarStyle: { display: 'none' },
       }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: '🩸 Pedidos',
-        }}
-      />
-      <Tab.Screen
-        name="Donors"
-        component={DonorsScreen}
-        options={{
-          tabBarLabel: '👥 Doadores',
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: '👤 Perfil',
-        }}
-      />
+      <Tab.Screen name="Home"        component={HomeTab} />
+      <Tab.Screen name="Hemocentros" component={MapScreen} />
+      <Tab.Screen name="Donors"      component={DonorsScreen} />
+      <Tab.Screen name="Profile"     component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
@@ -78,8 +47,8 @@ function MainTabs() {
 function AuthStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Welcome"  component={WelcomeScreen} />
+      <Stack.Screen name="Login"    component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
     </Stack.Navigator>
   );
@@ -88,13 +57,14 @@ function AuthStack() {
 function AppStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="MainTabs"     component={MainTabs} />
       <Stack.Screen
         name="CreateRequest"
         component={CreateRequestScreen}
         options={{ presentation: 'modal' }}
       />
       <Stack.Screen name="BloodBanks" component={BloodBanksScreen} />
+      <Stack.Screen name="Map"        component={MapScreen} />
     </Stack.Navigator>
   );
 }
@@ -111,7 +81,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       {user ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );

@@ -10,4 +10,8 @@ npm-debug.*
 *.orig.*
 web-build/
 .env
-.env.local
+.env.locals
+.DS_Store
+.expo-shared/
+FIREBASE_INDEXES.md
+
